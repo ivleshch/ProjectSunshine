@@ -17,10 +17,15 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    buildTypes.each {
+        it.buildConfigField 'String', 'OPEN_WEATHER_MAP_API_KEY', "\"598ac5920b2c6b8de6760e270730def3\""
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:24.2.1'
+    compile 'com.squareup.okhttp:okhttp:2.5.0'
+    compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1'
 }
