@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <EditTextPreference
+        android:inputType="text"
+        android:key="@string/pref_location_key"
+        android:maxLength="50"
+        android:singleLine="true"
+        android:summary="Cherkasy,Ukraine"
+        android:defaultValue="Cherkasy,Ukraine"
+        android:title="@string/pref_location_label" />
+
+    <ListPreference
+        android:defaultValue="@string/pref_units_metric"
+        android:entries="@array/pref_units_options"
+        android:entryValues="@array/pref_units_values"
+        android:key="@string/pref_units_key"
+        android:title="@string/pref_units_label" />
+
+</PreferenceScreen>
