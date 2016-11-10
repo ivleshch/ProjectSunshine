@@ -1,5 +1,4 @@
-
-package com.example.ivleshch.sunshine.app.data;
+package com.example.ivleshch.sunshine.data;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -37,7 +36,7 @@ public class TestDb extends AndroidTestCase {
 
         do {
             tableNameHashSet.remove(c.getString(0));
-        } while( c.moveToNext() );
+        } while (c.moveToNext());
 
         assertTrue("Error: Your database was created without both the location entry and weather entry tables",
                 tableNameHashSet.isEmpty());
@@ -59,7 +58,7 @@ public class TestDb extends AndroidTestCase {
         do {
             String columnName = c.getString(columnNameIndex);
             locationColumnHashSet.remove(columnName);
-        } while(c.moveToNext());
+        } while (c.moveToNext());
 
         assertTrue("Error: The database doesn't contain all of the required location entry columns",
                 locationColumnHashSet.isEmpty());
@@ -94,18 +93,17 @@ public class TestDb extends AndroidTestCase {
         );
 
 
-        assertTrue( "Error: No Records returned from location query", weatherCursor.moveToFirst() );
+        assertTrue("Error: No Records returned from location query", weatherCursor.moveToFirst());
 
         TestUtilities.validateCurrentRecord("testInsertReadDb weatherEntry failed to validate",
                 weatherCursor, weatherValues);
 
-        assertFalse( "Error: More than one record returned from weather query",
-                weatherCursor.moveToNext() );
+        assertFalse("Error: More than one record returned from weather query",
+                weatherCursor.moveToNext());
 
         weatherCursor.close();
         dbHelper.close();
     }
-
 
 
     public long insertLocation() {
@@ -133,13 +131,13 @@ public class TestDb extends AndroidTestCase {
                 null
         );
 
-        assertTrue( "Error: No Records returned from location query", cursor.moveToFirst() );
+        assertTrue("Error: No Records returned from location query", cursor.moveToFirst());
 
         TestUtilities.validateCurrentRecord("Error: Location Query Validation Failed",
                 cursor, testValues);
 
-        assertFalse( "Error: More than one record returned from location query",
-                cursor.moveToNext() );
+        assertFalse("Error: More than one record returned from location query",
+                cursor.moveToNext());
 
         cursor.close();
         db.close();

@@ -1,27 +1,11 @@
-/*
- * Copyright (C) 2014 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package com.example.ivleshch.sunshine.app.data;
+package com.example.ivleshch.sunshine.data;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import com.example.ivleshch.sunshine.app.data.WeatherContract.LocationEntry;
-import com.example.ivleshch.sunshine.app.data.WeatherContract.WeatherEntry;
-
+import com.example.ivleshch.sunshine.data.WeatherContract.LocationEntry;
+import com.example.ivleshch.sunshine.data.WeatherContract.WeatherEntry;
 
 public class WeatherDbHelper extends SQLiteOpenHelper {
 
@@ -37,12 +21,12 @@ public class WeatherDbHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
 
         final String SQL_CREATE_LOCATION_TABLE = "CREATE TABLE " + LocationEntry.TABLE_NAME + " (" +
-                                LocationEntry._ID + " INTEGER PRIMARY KEY," +
-                                LocationEntry.COLUMN_LOCATION_SETTING + " TEXT UNIQUE NOT NULL, " +
-                                LocationEntry.COLUMN_CITY_NAME + " TEXT NOT NULL, " +
-                                LocationEntry.COLUMN_COORD_LAT + " REAL NOT NULL, " +
-                                LocationEntry.COLUMN_COORD_LONG + " REAL NOT NULL " +
-                                " );";
+                LocationEntry._ID + " INTEGER PRIMARY KEY," +
+                LocationEntry.COLUMN_LOCATION_SETTING + " TEXT UNIQUE NOT NULL, " +
+                LocationEntry.COLUMN_CITY_NAME + " TEXT NOT NULL, " +
+                LocationEntry.COLUMN_COORD_LAT + " REAL NOT NULL, " +
+                LocationEntry.COLUMN_COORD_LONG + " REAL NOT NULL " +
+                " );";
 
         final String SQL_CREATE_WEATHER_TABLE = "CREATE TABLE " + WeatherEntry.TABLE_NAME + " (" +
 
@@ -57,10 +41,8 @@ public class WeatherDbHelper extends SQLiteOpenHelper {
                 WeatherEntry.COLUMN_PRESSURE + " REAL NOT NULL, " +
                 WeatherEntry.COLUMN_WIND_SPEED + " REAL NOT NULL, " +
                 WeatherEntry.COLUMN_DEGREES + " REAL NOT NULL, " +
-
                 " FOREIGN KEY (" + WeatherEntry.COLUMN_LOC_KEY + ") REFERENCES " +
                 LocationEntry.TABLE_NAME + " (" + LocationEntry._ID + "), " +
-
                 " UNIQUE (" + WeatherEntry.COLUMN_DATE + ", " +
                 WeatherEntry.COLUMN_LOC_KEY + ") ON CONFLICT REPLACE);";
 
