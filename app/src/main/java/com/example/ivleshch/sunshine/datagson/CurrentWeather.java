@@ -6,12 +6,15 @@ package com.example.ivleshch.sunshine.datagson;
 public class CurrentWeather {
     private ListJson[] list;
 
+    private City city;
+
     public ListJson[] getList() {
         return list;
     }
 
-    public void setList(ListJson[] list) {
-        this.list = list;
+    public City getCity ()
+    {
+        return city;
     }
 
 }

@@ -6,7 +6,35 @@ package com.example.ivleshch.sunshine.datagson;
 public class ListJson {
     private Weather[] weather;
 
+    private int humidity;
+
+    private double pressure;
+
     private Temp temp;
+
+    private double speed;
+
+    private double deg;
+
+    public double getSpeed ()
+    {
+        return speed;
+    }
+
+    public double getDeg ()
+    {
+        return deg;
+    }
+
+    public int getHumidity ()
+    {
+        return humidity;
+    }
+
+    public double getPressure ()
+    {
+        return pressure;
+    }
 
     public Weather[] getWeather() {
         return weather;

@@ -2,12 +2,19 @@ package com.example.ivleshch.sunshine;
 
 
 import android.app.Activity;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.text.format.Time;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,6 +25,8 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import com.example.ivleshch.sunshine.data.WeatherContract;
+import com.example.ivleshch.sunshine.data.WeatherContract.WeatherEntry;
 import com.example.ivleshch.sunshine.datagson.CurrentWeather;
 import com.google.gson.Gson;
 import com.squareup.okhttp.Callback;
@@ -30,7 +39,7 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.GregorianCalendar;
+import java.util.Vector;
 
 
 /**
@@ -71,6 +80,7 @@ public class ForecastFragment extends Fragment {
             doGetRequest(location);
         } catch (IOException e) {
             e.printStackTrace();
+            Log.d("ErrorInsert", "Inserted");
         }
     }
 
@@ -78,6 +88,22 @@ public class ForecastFragment extends Fragment {
     public void onStart() {
         super.onStart();
         updateWeather();
+    }
+
+    String[] convertContentValuesToUXFormat(Vector<ContentValues> cvv, String units) {
+        String[] resultStrs = new String[cvv.size()];
+        for ( int i = 0; i < cvv.size(); i++ ) {
+            ContentValues weatherValues = cvv.elementAt(i);
+            String highAndLow = formatHighLows(
+                    weatherValues.getAsDouble(WeatherEntry.COLUMN_MAX_TEMP),
+                    weatherValues.getAsDouble(WeatherEntry.COLUMN_MIN_TEMP),
+                    units);
+            resultStrs[i] = getReadableDateString(
+                    weatherValues.getAsLong(WeatherEntry.COLUMN_DATE)) +
+                    " - " + weatherValues.getAsString(WeatherEntry.COLUMN_SHORT_DESC) +
+                    " - " + highAndLow;
+        }
+        return resultStrs;
     }
 
     void doGetRequest(String... params) throws IOException {
@@ -88,15 +114,18 @@ public class ForecastFragment extends Fragment {
         final String UNITS_PARAM = "units";
         final String DAYS_PARAM = "cnt";
         final String APPID_PARAM = "APPID";
+        final int numDays = 7;
+
+        final Vector<ContentValues> cVVector = new Vector<ContentValues>(numDays);
 
         String format = "json";
-        String units = "metric";
-        final int numDays = 7;
+
+        final String location = params[0];
 
         Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
                 .appendQueryParameter(QUERY_PARAM, params[0])
                 .appendQueryParameter(FORMAT_PARAM, format)
-                .appendQueryParameter(UNITS_PARAM, units)
+                .appendQueryParameter(UNITS_PARAM, "metric")
                 .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
                 //.appendQueryParameter(APPID_PARAM, "598ac5920b2c6b8de6760e270730def3")
                 .appendQueryParameter(APPID_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
@@ -113,15 +142,23 @@ public class ForecastFragment extends Fragment {
         client.newCall(request).enqueue(new Callback() {
                                             @Override
                                             public void onFailure(Request request, IOException e) {
-
+                                                ((Activity) mForecastAdapter.getContext()).runOnUiThread(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        updateList(location);
+                                                    }
+                                                });
                                             }
 
                                             @Override
                                             public void onResponse(Response response) throws IOException {
 
-                                                final String[] resultStrs = new String[7];
+                                                final String[] resultStrs;// = new String[7];
 
-                                                GregorianCalendar gc = new GregorianCalendar();
+                                                Time dayTime = new Time();
+                                                dayTime.setToNow();
+                                                int julianStartDay = Time.getJulianDay(System.currentTimeMillis(), dayTime.gmtoff);
+                                                dayTime = new Time();
 
                                                 if (response.isSuccessful()) {
                                                     String res = response.body().string();
@@ -129,30 +166,58 @@ public class ForecastFragment extends Fragment {
                                                     Gson gson = new Gson();
                                                     CurrentWeather currentWeather = gson.fromJson(res, CurrentWeather.class);
 
+                                                    String cityName = currentWeather.getCity().getName();
+                                                    double cityLatitude = currentWeather.getCity().getCoord().getLat();
+                                                    double cityLongitude = currentWeather.getCity().getCoord().getLon();
+
+                                                    long locationId = addLocation(location, cityName, cityLatitude, cityLongitude);
+
+
+                                                    String units = "metric";
+
                                                     if (currentWeather != null) {
                                                         for (int i = 0; i < numDays; i++) {
+                                                            double pressure = currentWeather.getList()[i].getPressure();
+                                                            int humidity = currentWeather.getList()[i].getHumidity();
+                                                            double windSpeed = currentWeather.getList()[i].getSpeed();
+                                                            double windDirection = currentWeather.getList()[i].getDeg();
+                                                            int weatherId = currentWeather.getList()[i].getWeather()[0].getId();
+                                                            String description = currentWeather.getList()[i].getWeather()[0].getMain();
+                                                            long dateTime;
+
                                                             double high = currentWeather.getList()[i].getTemp().getMax();
                                                             double low = currentWeather.getList()[i].getTemp().getMin();
 
-                                                            SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-                                                            String units = sharedPrefs.getString(getString(R.string.pref_units_key), getString(R.string.pref_units_metric));
+                                                            dateTime = dayTime.setJulianDay(julianStartDay+i);
 
-                                                            String highAndLow = formatHighLows(high, low, units);
-                                                            Date time = gc.getTime();
+                                                            ContentValues weatherValues = new ContentValues();
 
-                                                            resultStrs[i] = getReadableDateString(time) + " - " + currentWeather.getList()[i].getWeather()[0].getMain() + " : " + highAndLow;
-                                                            gc.add(GregorianCalendar.DATE, 1);
+                                                            weatherValues.put(WeatherEntry.COLUMN_LOC_KEY, locationId);
+                                                            weatherValues.put(WeatherEntry.COLUMN_DATE, dateTime);
+                                                            weatherValues.put(WeatherEntry.COLUMN_HUMIDITY, humidity);
+                                                            weatherValues.put(WeatherEntry.COLUMN_PRESSURE, pressure);
+                                                            weatherValues.put(WeatherEntry.COLUMN_WIND_SPEED, windSpeed);
+                                                            weatherValues.put(WeatherEntry.COLUMN_DEGREES, windDirection);
+                                                            weatherValues.put(WeatherEntry.COLUMN_MAX_TEMP, high);
+                                                            weatherValues.put(WeatherEntry.COLUMN_MIN_TEMP, low);
+                                                            weatherValues.put(WeatherEntry.COLUMN_SHORT_DESC, description);
+                                                            weatherValues.put(WeatherEntry.COLUMN_WEATHER_ID, weatherId);
+
+                                                            cVVector.add(weatherValues);
+                                                        }
+
+                                                        int inserted = 0;
+                                                        if (cVVector.size() > 0) {
+                                                            ContentValues[] cvArray = new ContentValues[cVVector.size()];
+                                                            cVVector.toArray(cvArray);
+                                                            inserted = ((Activity) mForecastAdapter.getContext()).getContentResolver().bulkInsert(WeatherEntry.CONTENT_URI, cvArray);
                                                         }
                                                     }
 
                                                     ((Activity) mForecastAdapter.getContext()).runOnUiThread(new Runnable() {
                                                         @Override
                                                         public void run() {
-                                                            mForecastAdapter.clear();
-                                                            for (String dayForecastStr : resultStrs) {
-                                                                mForecastAdapter.add(dayForecastStr);
-
-                                                            }
+                                                            updateList(location);
                                                         }
                                                     });
                                                 }
@@ -162,9 +227,71 @@ public class ForecastFragment extends Fragment {
         );
     }
 
-    private String getReadableDateString(Date time) {
-        SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
-        return shortenedDateFormat.format(time);
+    long addLocation(String locationSetting, String cityName, double lat, double lon) {
+        long locationId;
+        Context mContext = ((Activity) mForecastAdapter.getContext());
+
+        Cursor locationCursor = mContext.getContentResolver().query(
+                WeatherContract.LocationEntry.CONTENT_URI,
+                new String[]{WeatherContract.LocationEntry._ID},
+                WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING + " = ?",
+                new String[]{locationSetting},
+                null);
+
+        if (locationCursor.moveToFirst()) {
+            int locationIdIndex = locationCursor.getColumnIndex(WeatherContract.LocationEntry._ID);
+            locationId = locationCursor.getLong(locationIdIndex);
+        } else {
+            ContentValues locationValues = new ContentValues();
+            locationValues.put(WeatherContract.LocationEntry.COLUMN_CITY_NAME, cityName);
+            locationValues.put(WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING, locationSetting);
+            locationValues.put(WeatherContract.LocationEntry.COLUMN_COORD_LAT, lat);
+            locationValues.put(WeatherContract.LocationEntry.COLUMN_COORD_LONG, lon);
+
+            Uri insertedUri = mContext.getContentResolver().insert(
+                    WeatherContract.LocationEntry.CONTENT_URI,
+                    locationValues
+            );
+
+            locationId = ContentUris.parseId(insertedUri);
+        }
+
+        locationCursor.close();
+        return locationId;
+    }
+
+    void updateList(String location){
+        String sortOrder = WeatherEntry.COLUMN_DATE + " ASC";
+        Uri weatherForLocationUri = WeatherEntry.buildWeatherLocationWithStartDate(
+                location, System.currentTimeMillis());
+
+        Cursor cur = ((Activity) mForecastAdapter.getContext()).getContentResolver().query(weatherForLocationUri,
+                null, null, null, sortOrder);
+
+        Vector<ContentValues> cVVector = new Vector<ContentValues>(cur.getCount());
+        if ( cur.moveToFirst() ) {
+            do {
+                ContentValues cv = new ContentValues();
+                DatabaseUtils.cursorRowToContentValues(cur, cv);
+                cVVector.add(cv);
+            } while (cur.moveToNext());
+        }
+
+        SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String units = sharedPrefs.getString(getString(R.string.pref_units_key), getString(R.string.pref_units_metric));
+        String[] resultStrs = convertContentValuesToUXFormat(cVVector,units);
+
+        mForecastAdapter.clear();
+        for (String dayForecastStr : resultStrs) {
+            mForecastAdapter.add(dayForecastStr);
+
+        }
+    }
+
+    private String getReadableDateString(long time){
+        Date date = new Date(time);
+        SimpleDateFormat format = new SimpleDateFormat("E, MMM d");
+        return format.format(date).toString();
     }
 
     private String formatHighLows(double high, double low, String units) {

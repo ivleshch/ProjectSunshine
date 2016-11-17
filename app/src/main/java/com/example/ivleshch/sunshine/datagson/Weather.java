@@ -6,6 +6,13 @@ package com.example.ivleshch.sunshine.datagson;
 public class Weather {
     private String main;
 
+    private int id;
+
+    public int getId ()
+    {
+        return id;
+    }
+
     public String getMain() {
         return main;
     }
